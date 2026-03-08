@@ -274,6 +274,14 @@ claude_mcp() {
   CLAUDECODE= claude mcp "$@"
 }
 
+add_claude_stdio_server() {
+  local name="$1"
+  local server_path="$2"
+  shift 2
+
+  run_cmd claude_mcp add "$name" -s user "$@" -- node "$server_path"
+}
+
 remove_claude_server() {
   local name="$1"
   run_cmd claude_mcp remove -s local "$name" >/dev/null 2>&1 || true
@@ -358,34 +366,30 @@ if [ "$CLIENT" = "claude" ] || [ "$CLIENT" = "both" ]; then
   remove_claude_server "confluence-min"
   remove_claude_server "reports-min"
 
-  run_cmd claude_mcp add -s user \
+  add_claude_stdio_server jira-mcp "$FULL_SERVER_PATH" \
     -e "JIRA_BASE_URL=$JIRA_BASE_URL" \
     -e "JIRA_EMAIL=$JIRA_EMAIL" \
     -e "JIRA_API_TOKEN=$JIRA_API_TOKEN" \
-    -e "CONFLUENCE_BASE_URL=$CONFLUENCE_BASE_URL" \
-    jira-mcp -- node "$FULL_SERVER_PATH"
+    -e "CONFLUENCE_BASE_URL=$CONFLUENCE_BASE_URL"
 
-  run_cmd claude_mcp add -s user \
+  add_claude_stdio_server jira-min "$JIRA_MIN_PATH" \
     -e "JIRA_BASE_URL=$JIRA_BASE_URL" \
     -e "JIRA_EMAIL=$JIRA_EMAIL" \
     -e "JIRA_API_TOKEN=$JIRA_API_TOKEN" \
-    -e "CONFLUENCE_BASE_URL=$CONFLUENCE_BASE_URL" \
-    jira-min -- node "$JIRA_MIN_PATH"
+    -e "CONFLUENCE_BASE_URL=$CONFLUENCE_BASE_URL"
 
-  run_cmd claude_mcp add -s user \
+  add_claude_stdio_server confluence-min "$CONFLUENCE_MIN_PATH" \
     -e "CONFLUENCE_BASE_URL=$CONFLUENCE_BASE_URL" \
     -e "ATLASSIAN_EMAIL=$JIRA_EMAIL" \
-    -e "ATLASSIAN_API_TOKEN=$JIRA_API_TOKEN" \
-    confluence-min -- node "$CONFLUENCE_MIN_PATH"
+    -e "ATLASSIAN_API_TOKEN=$JIRA_API_TOKEN"
 
-  run_cmd claude_mcp add -s user \
+  add_claude_stdio_server reports-min "$REPORTS_MIN_PATH" \
     -e "JIRA_BASE_URL=$JIRA_BASE_URL" \
     -e "JIRA_EMAIL=$JIRA_EMAIL" \
     -e "JIRA_API_TOKEN=$JIRA_API_TOKEN" \
     -e "CONFLUENCE_BASE_URL=$CONFLUENCE_BASE_URL" \
     -e "ATLASSIAN_EMAIL=$JIRA_EMAIL" \
-    -e "ATLASSIAN_API_TOKEN=$JIRA_API_TOKEN" \
-    reports-min -- node "$REPORTS_MIN_PATH"
+    -e "ATLASSIAN_API_TOKEN=$JIRA_API_TOKEN"
 
   if [ "$DRY_RUN" = false ]; then
     claude_mcp list

@@ -63,9 +63,13 @@ npm run build
 
 ### recommended: install with your llm
 
-point your agent to `skills/jira-mcp-installer/`.
+point your agent to `skills/jira-mcp-installer/SKILL.md`.
 
 the installer skill collects your jira credentials, builds the project, configures the mcp servers, and runs offline verification.
+
+this is a global mcp installation: the script registers the servers in your user-level claude/codex config so they are available across projects.
+
+if you want a local mcp installation instead, do not use the installer skill. add the server entries manually in a project-scoped mcp config.
 
 ### manual mcp client configuration (fallback)
 

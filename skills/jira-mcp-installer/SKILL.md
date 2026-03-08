@@ -16,17 +16,37 @@ This skill installs the repo dependencies, collects Jira credentials if needed, 
 persists them to `~/.jira-mcp.env`, registers the MCP entries for Claude Code and/or Codex,
 and runs offline smoke checks.
 
+By default, this skill performs a global MCP installation:
+
+- Claude Code: user scope
+- Codex: user-level MCP registration
+
+That makes the servers available across projects on the same machine.
+
+This skill is not for project-local MCP installation. If the user wants a local/project-only
+setup, explain the difference and switch to manual project-scoped MCP config instead of
+running this installer.
+
 ## Agent Rules
 
+- If the user points you at this skill on GitHub, open these exact files first:
+  - `skills/jira-mcp-installer/SKILL.md`
+  - `skills/jira-mcp-installer/scripts/setup.sh`
 - Before running the installer, inspect the current folder. If it is not the `jira-mcp`
   repo, clone or open the repo first, then run the local installer script from that checkout.
 - This matters when the user points to `skills/jira-mcp-installer/SKILL.md` on GitHub: you
   may be able to read the skill remotely before the repo exists locally, but you still must
   create or open a local `jira-mcp` checkout before running `scripts/setup.sh`.
 - Always run `scripts/setup.sh`. Do not hand-edit Claude or Codex MCP config files.
-- If required credentials are missing, the script can prompt for them interactively.
+- Be explicit about installation scope before running the script:
+  - "global install" means user-level MCP registration shared across projects
+  - "local install" means project-scoped MCP config for one repo only
+- Check whether `JIRA_BASE_URL`, `JIRA_EMAIL`, and `JIRA_API_TOKEN` are already set before
+  asking the user for credentials. Only ask for values that are actually missing.
 - Prefer `--client both` when both `claude` and `codex` are installed.
 - Surface the script's exact failure message instead of improvising fallback commands.
+- If the script fails, stop and report the exact failure. Do not improvise manual MCP
+  registration commands.
 - Do not write raw tokens directly into `.zshrc` or `.bashrc`. If the user wants persistence,
   use `~/.jira-mcp.env` and optionally source that file from the shell rc.
 
@@ -70,6 +90,9 @@ Then run the setup script from the skill directory:
 bash /path/to/skills/jira-mcp-installer/scripts/setup.sh --client both
 ```
 
+If you are reading this skill remotely from GitHub, clone or open the repo locally first,
+then run the same local script path from that checkout.
+
 Useful variants:
 
 ```bash
@@ -86,7 +109,7 @@ What the script does:
 2. Collects Jira credentials if they are missing
 3. Runs `npm install`
 4. Runs `npm run build`
-5. Re-registers these MCP servers:
+5. Re-registers these MCP servers in user/global scope:
    - `jira-mcp`
    - `jira-min`
    - `confluence-min`
@@ -106,6 +129,21 @@ not appear immediately.
 - `jira-min` exposes the 12-tool minimal Jira/Confluence server
 - `confluence-min` exposes `confluence_search_pages`
 - `reports-min` exposes the 3 reporting tools
+- The registrations are user-level, not project-local
+
+## Scope
+
+Use this skill when the user wants the MCP servers available across projects on their
+machine.
+
+Do not use this skill when the user explicitly wants:
+
+- project-local MCP config
+- repo-scoped registration only
+- a config file committed inside another repository
+
+In those cases, explain that this installer is global/user-level and use manual local MCP
+configuration instead.
 
 ## Troubleshooting
 
