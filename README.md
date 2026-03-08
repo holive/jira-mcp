@@ -1,56 +1,14 @@
 # jira + confluence mcp servers (cloud)
 
-simple, stdio-based mcp servers for atlassian jira and confluence (cloud, api token auth). no webhooks. focus on issue search, boards, and confluence search, plus a minimal "reports" server for daily briefs.
-
----
-
-## example: ai-powered dependency analysis
-
-turn complex jira tickets into actionable implementation plans in 3 simple steps:
-
-![95wlim95wlim95wl](https://github.com/user-attachments/assets/4c6bf137-ac3b-4558-9430-f906f9c4a1cd)
-
-### step 1: analyze jira dependencies
-
-in gemini cli, paste:
-```
-run dependency analysis on DMD-11937 with:
-- depth: 3
-- include confluence docs updated in last 12 months
-- save to jira_analysis.json
-```
-
-**what you get:** jira ticket context, dependency graph, blocker analysis, confluence docs, and a ready-to-use prompt for code analysis
-
-### step 2: analyze related code
-
-copy the `suggested_prompt` from `jira_analysis.json` (replace `{{YOUR_GITHUB_ORG}}` and `{{YOUR_GITHUB_REPO}}`), then paste it into claude or gemini in your repository.
-
-**note:** tell the ai to wait if it hits github rate limits - accuracy over speed for this report.
-
-**what you get:** related prs, commits, implementation patterns, cross-repo dependencies with confidence scores - saved to `code_analysis.json`
-
-### step 3: synthesize implementation plan
-
-in claude or gemini, run the synthesis prompt:
-```
-use the SYNTHESIS_PROMPT.md template with @jira_analysis.json and @code_analysis.json
-```
-
-**what you get:**
-- **tech lead context**: executive summary, effort estimate, risk assessment
-- **developer guide**: step-by-step implementation plan with code examples, testing strategy, deployment plan
-- **correlation analysis**: confidence-scored matches between jira context and code findings
-
-**output:** `synthesis_analysis.json` - ready to paste into ticket descriptions or hand to developers
+Simple, stdio-based MCP servers for Atlassian Jira and Confluence (cloud, API token auth). No webhooks. Focus on issue search, boards, and Confluence search, plus a minimal "reports" server for daily briefs.
 
 ---
 
 ## quick setup
 
 ### prerequisites
-- node.js 18+
-- atlassian cloud email + api token ([create one here](https://id.atlassian.com/manage-profile/security/api-tokens))
+- Node.js 18+
+- Atlassian Cloud email + API token ([create one here](https://id.atlassian.com/manage-profile/security/api-tokens))
 
 ### install
 
@@ -61,21 +19,19 @@ npm install
 npm run build
 ```
 
-### configure for gemini cli (recommended)
+### recommended: install with your llm
 
-```bash
-# step 1: set your credentials (interactive)
-npm run setup:gemini
+Point your agent to `skills/jira-mcp-installer/SKILL.md`.
 
-# step 2: configure gemini cli
-npm run gemini:config
-```
+The installer skill collects your Jira credentials, builds the project, configures the MCP servers, and runs offline verification.
 
-**ready to use!** your gemini cli is now connected to jira and confluence.
+This is a global MCP installation: the script registers the servers in your user-level Claude/Codex config so they are available across projects.
 
-### manual mcp client configuration
+If you want a local MCP installation instead, do not use the installer skill. Add the server entries manually in a project-scoped MCP config.
 
-if not using gemini cli, add to your mcp client config (claude desktop, cline, etc.):
+### manual mcp client configuration (fallback)
+
+If not using Gemini CLI, add to your MCP client config (Claude Desktop, Cline, etc.):
 
 ```json
 "mcpServers": {
@@ -93,157 +49,48 @@ if not using gemini cli, add to your mcp client config (claude desktop, cline, e
 }
 ```
 
-**important:** use absolute paths, not relative paths.
+**Important:** Use absolute paths, not relative paths.
 
 ---
 
-## available tools
+## example: ai-powered dependency analysis
 
-### jira-min server
-- `jira_list_issues` - search via jql with pagination
-- `jira_get_issue` - fetch single issue with full details
-- `jira_dependency_analysis` - comprehensive dependency analysis (recommended!)
-- `jira_issue_relationships` - traverse dependency graph
-- `jira_get_changelog` - status transitions, reassignments
-- `jira_list_projects` - list accessible projects
-- `jira_list_boards` - list boards for projects
-- `jira_board_issues` - get issues from specific boards
-- `jira_find_similar_tickets` - discover context from historical tickets
-- `confluence_get_page` - get page with ancestors/breadcrumbs
-- `jira_issue_confluence_links` - extract confluence links from issue
-- `confluence_page_jira_links` - extract jira keys from page
+Turn complex Jira tickets into actionable implementation plans in 3 simple steps:
 
-### confluence-min server
-- `confluence_search_pages` - search pages using cql
+![95wlim95wlim95wl](https://github.com/user-attachments/assets/4c6bf137-ac3b-4558-9430-f906f9c4a1cd)
 
-### reports-min server (jira + confluence combined)
-- `ops_daily_brief` - daily summary (last 24h, new issues, transitions, blocked tickets)
-- `ops_shift_delta` - what changed since you logged off
-- `ops_jira_review_radar` - issues waiting for review (stale prs)
+### step 1: analyze jira dependencies
+
+In Gemini CLI, paste:
+```
+run dependency analysis on DMD-11937 with:
+- depth: 3
+- include confluence docs updated in last 12 months
+- save to jira_analysis.json
+```
+
+**What you get:** Jira ticket context, dependency graph, blocker analysis, Confluence docs, and a ready-to-use prompt for code analysis
+
+### step 2: analyze related code
+
+Copy the `suggested_prompt` from `jira_analysis.json` (replace `{{YOUR_GITHUB_ORG}}` and `{{YOUR_GITHUB_REPO}}`), then paste it into Claude or Gemini in your repository.
+
+**Note:** Tell the AI to wait if it hits GitHub rate limits - accuracy over speed for this report.
+
+**What you get:** Related PRs, commits, implementation patterns, cross-repo dependencies with confidence scores - saved to `code_analysis.json`
+
+### step 3: synthesize implementation plan
+
+In Claude or Gemini, run the synthesis prompt:
+```
+use the SYNTHESIS_PROMPT.md template with @jira_analysis.json and @code_analysis.json
+```
+
+**What you get:**
+- **Tech lead context**: executive summary, effort estimate, risk assessment
+- **Developer guide**: step-by-step implementation plan with code examples, testing strategy, deployment plan
+- **Correlation analysis**: confidence-scored matches between Jira context and code findings
+
+**Output:** `synthesis_analysis.json` - ready to paste into ticket descriptions or hand to developers
 
 ---
-
-## common usage patterns
-
-### search jira issues
-```
-jql: "project = ABC AND status != Done ORDER BY updated DESC"
-fields: "summary,assignee,comment"
-includeComments: true
-```
-
-### analyze dependencies for blocked ticket
-```
-issueKey: "PROJ-123"
-depth: 3
-autoDiscover: true
-```
-
-### search confluence for architecture docs
-```
-cql: "text ~ 'microservices' AND (title ~ 'architecture' OR title ~ 'design') AND space = ENG"
-limit: 10
-```
-
-### get daily brief for last 24 hours
-```
-from: "2025-10-08T12:00:00-03:00"
-to: "2025-10-09T12:00:00-03:00"
-projects: ["ABC", "DMD"]
-labelsBlocked: ["Blocked", "Impeded"]
-```
-
----
-
-## advanced workflows
-
-### dependency analysis (3-stage process)
-
-**stage 1: jira/confluence discovery**
-analyzes ticket dependencies, extracts confluence docs, identifies blockers
-**output:** `jira_analysis.json` with suggested code search prompt
-
-**stage 2: code analysis**
-uses suggested_prompt from stage 1 with github cli in your repository
-searches for related prs, commits, implementation patterns
-**output:** `code_analysis.json` with structured findings
-
-**stage 3: synthesis**
-correlates both analyses with confidence tracking
-generates tech lead context + developer implementation guide
-**output:** `synthesis_analysis.json`
-
-**see:** [DEPENDENCY_ANALYSIS.md](./DEPENDENCY_ANALYSIS.md) for detailed workflow
-**see:** [SYNTHESIS_PROMPT.md](./SYNTHESIS_PROMPT.md) for stage 3 template
-
-### using with gemini cli
-
-gemini cli is google's terminal-based ai assistant. connect this jira mcp server to:
-- ask questions about jira projects in plain english
-- search issues, boards, confluence pages from your terminal
-- get daily reports through conversational queries
-- combine jira data with github in a single ai session
-
-**detailed setup:** [GEMINI_SETUP.md](./GEMINI_SETUP.md)
-includes: advanced configuration, combining with github mcp, jql patterns, troubleshooting
-
----
-
-## testing connectivity
-
-```bash
-# verify jira connection
-npm run ping
-
-# or manually
-JIRA_BASE_URL=https://your-site.atlassian.net \
-JIRA_EMAIL=you@example.com \
-JIRA_API_TOKEN=your-token \
-npm run start:jira-min
-```
-
----
-
-## architecture
-
-### where things live
-- **minimal servers:** `scripts/minimal-server.mjs`, `scripts/confluence-minimal-server.mjs`, `scripts/report-minimal-server.mjs`
-- **jira client:** `src/jira/client.ts` (http + retries, agile + core apis)
-- **issue normalization:** `src/jira/issues.ts` (adf to plain text, field mapping)
-- **mcp integration:** `src/mcp/tools.ts` (tool registration, input/output schemas)
-- **schemas:** `src/schemas.ts` (zod schemas for validation)
-
-### confidence tracking
-all analysis outputs include explicit confidence scores:
-- **high (0.8-1.0):** direct evidence (ticket id in pr, exact component match)
-- **medium (0.5-0.8):** inferred match (similar patterns, related terms)
-- **low (0.0-0.5):** weak connection (keyword match only, old references)
-
-gaps are flagged explicitly rather than filled with assumptions.
-
----
-
-## troubleshooting
-
-**common issues:**
-- tool list caching in mcp clients
-- logs not visible (use stderr for debugging)
-- 404 on confluence (missing /wiki in base url)
-- jira 410 errors (search api migration)
-- mcp server name collisions
-
-**see:** [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for solutions
-
----
-
-## security
-
-- keep your atlassian api token secret
-- rotate it if it appears in shell history or logs
-- use environment variables, not hardcoded tokens in configs
-
----
-
-## license
-
-mit

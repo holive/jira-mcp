@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   SearchIssuesInput,
-  CreateIssueInput,
+  ConfluenceSearchPagesInput,
   EnvConfig,
 } from "../src/schemas.js";
 
@@ -12,9 +12,10 @@ describe("Schemas", () => {
     expect(parsed.startAt).toBe(0);
   });
 
-  it("CreateIssueInput requires summary", () => {
-    const res = CreateIssueInput.safeParse({});
-    expect(res.success).toBe(false);
+  it("ConfluenceSearchPagesInput applies defaults", () => {
+    const parsed = ConfluenceSearchPagesInput.parse({ cql: "type = page" });
+    expect(parsed.limit).toBe(25);
+    expect(parsed.start).toBe(0);
   });
 
   it("EnvConfig validates required vars", () => {
@@ -22,4 +23,3 @@ describe("Schemas", () => {
     expect(res.success).toBe(false);
   });
 });
-

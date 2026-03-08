@@ -530,6 +530,174 @@ server.tool(
 
 // comprehensive dependency analysis (main orchestration tool)
 server.tool(
+  "jira_find_similar_tickets",
+  "Jira: Find similar tickets to discover repos/services context (searches by keywords, components, labels, assignee)",
+  {
+    issueKey: z.string().min(1),
+    limit: z.number().int().min(1).max(50).default(10),
+    includeKeywords: z.boolean().default(true),
+    includeComponents: z.boolean().default(true),
+    includeLabels: z.boolean().default(true),
+    includeAssignee: z.boolean().default(false),
+    onlyClosedTickets: z.boolean().default(true),
+  },
+  async ({ issueKey, limit, includeKeywords, includeComponents, includeLabels, includeAssignee, onlyClosedTickets }) => {
+    if (!jira) {
+      jiraBaseUrl = requireEnv("JIRA_BASE_URL");
+      const email = requireEnv("JIRA_EMAIL");
+      const apiToken = requireEnv("JIRA_API_TOKEN");
+      confluenceBaseUrl = process.env.CONFLUENCE_BASE_URL || `${jiraBaseUrl}/wiki`;
+      jira = new JiraClient({ baseUrl: jiraBaseUrl, confluenceBaseUrl, email, apiToken, defaults: {} });
+    }
+
+    const raw = await jira.getIssue(issueKey, ["summary", "description", "comment", "labels", "components", "assignee"]);
+    const keywords = new Set();
+    const technicalTerms = new Set();
+
+    const extractTerms = (text) => {
+      if (!text) return;
+
+      const camelCase = text.match(/\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b/g);
+      if (camelCase) camelCase.forEach((term) => technicalTerms.add(term));
+
+      const acronyms = text.match(/\b[A-Z]{2,}\b/g);
+      if (acronyms) {
+        acronyms.forEach((acronym) => {
+          if (acronym.length >= 2 && acronym.length <= 8) {
+            technicalTerms.add(acronym);
+            keywords.add(acronym);
+          }
+        });
+      }
+
+      const domainTerms = text.match(/\b(provider|service|controller|repository|handler|processor|manager|client|server|api|endpoint|queue|stream|pipeline|migration|schema|database|metrics|monitoring|authentication|authorization|deployment|infrastructure)\b/gi);
+      if (domainTerms) domainTerms.forEach((term) => keywords.add(term.toLowerCase()));
+    };
+
+    const summary = raw?.fields?.summary ?? "";
+    const description = adfToPlainText(raw?.fields?.description) || "";
+    const labels = raw?.fields?.labels || [];
+    const components = (raw?.fields?.components || []).map((component) => component.name ?? "");
+    const assignee = raw?.fields?.assignee?.displayName;
+
+    extractTerms(summary);
+    extractTerms(description);
+    (raw?.fields?.comment?.comments || []).slice(-3).forEach((comment) => {
+      extractTerms(adfToPlainText(comment.body));
+    });
+
+    const searches = [];
+    if (includeKeywords && keywords.size > 0) {
+      Array.from(keywords).slice(0, 5).forEach((keyword) => {
+        const statusFilter = onlyClosedTickets ? " AND status = Closed" : "";
+        searches.push({
+          jql: `text ~ "${keyword}"${statusFilter} ORDER BY updated DESC`,
+          strategy: `keyword: ${keyword}`,
+          weight: 0.7,
+        });
+      });
+    }
+
+    if (includeComponents && components.length > 0) {
+      components.forEach((component) => {
+        const statusFilter = onlyClosedTickets ? " AND status = Closed" : "";
+        searches.push({
+          jql: `component = "${component}"${statusFilter} ORDER BY updated DESC`,
+          strategy: `component: ${component}`,
+          weight: 0.9,
+        });
+      });
+    }
+
+    if (includeLabels && labels.length > 0) {
+      labels.forEach((label) => {
+        const statusFilter = onlyClosedTickets ? " AND status = Closed" : "";
+        searches.push({
+          jql: `labels = "${label}"${statusFilter} ORDER BY updated DESC`,
+          strategy: `label: ${label}`,
+          weight: 0.6,
+        });
+      });
+    }
+
+    if (includeAssignee && assignee) {
+      const statusFilter = onlyClosedTickets ? " AND status = Closed" : "";
+      searches.push({
+        jql: `assignee = "${assignee}"${statusFilter} ORDER BY updated DESC`,
+        strategy: `assignee: ${assignee}`,
+        weight: 0.4,
+      });
+    }
+
+    const similarTicketsMap = new Map();
+    const strategiesUsed = [];
+
+    for (const search of searches) {
+      try {
+        const res = await jira.searchIssues({
+          jql: search.jql,
+          startAt: 0,
+          maxResults: Math.min(limit * 2, 20),
+          fields: ["summary", "status", "labels", "components"],
+        });
+
+        strategiesUsed.push(search.strategy);
+
+        for (const issue of Array.isArray(res.issues) ? res.issues : []) {
+          const key = issue.key;
+          if (key === issueKey) continue;
+
+          if (similarTicketsMap.has(key)) {
+            const existing = similarTicketsMap.get(key);
+            existing.confidenceScore = Math.min(1, existing.confidenceScore + search.weight * 0.3);
+            existing.matchReason += `, ${search.strategy}`;
+            continue;
+          }
+
+          similarTicketsMap.set(key, {
+            key,
+            summary: issue.fields?.summary ?? "",
+            status: issue.fields?.status?.name ?? "",
+            matchReason: search.strategy,
+            confidenceScore: search.weight,
+            labels: issue.fields?.labels || [],
+            components: (issue.fields?.components || []).map((component) => ({
+              id: String(component.id ?? ""),
+              name: component.name ?? "",
+            })),
+          });
+        }
+      } catch (err) {
+        console.error(`search failed for jql: ${search.jql}`, err);
+      }
+    }
+
+    const similarTickets = Array.from(similarTicketsMap.values())
+      .sort((a, b) => b.confidenceScore - a.confidenceScore)
+      .slice(0, limit);
+
+    return {
+      content: [{
+        type: "text",
+        text: JSON.stringify({
+          sourceTicket: {
+            key: issueKey,
+            summary,
+            extractedKeywords: Array.from(keywords),
+            components,
+            labels,
+          },
+          similarTickets,
+          searchStrategies: strategiesUsed,
+          totalFound: similarTicketsMap.size,
+        }),
+      }],
+    };
+  }
+);
+
+// comprehensive dependency analysis (main orchestration tool)
+server.tool(
   "jira_dependency_analysis",
   "Jira: Comprehensive dependency analysis (traverses dependencies, extracts confluence docs, analyzes patterns, generates code search prompt)",
   {

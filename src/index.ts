@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { registerTools, registerResources, registerPrompts } from "./mcp/tools.js";
+import { registerTools } from "./mcp/tools.js";
 import { loadConfig } from "./config.js";
 
 async function main() {
@@ -29,8 +29,6 @@ async function main() {
       console.error("[jira-mcp] Tool registration error:", e);
     }
   }
-  registerResources(mcp as any, config);
-  registerPrompts(mcp as any, config);
 
   const transport = new StdioServerTransport();
   await mcp.connect(transport as any);
