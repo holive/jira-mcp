@@ -61,17 +61,9 @@ npm install
 npm run build
 ```
 
-### configure for gemini cli (recommended)
+### install with claude code or codex
 
-```bash
-# step 1: set your credentials (interactive)
-npm run setup:gemini
-
-# step 2: configure gemini cli
-npm run gemini:config
-```
-
-**ready to use!** your gemini cli is now connected to jira and confluence.
+install with your llm: point your agent to `skills/jira-mcp-installer/`.
 
 ### manual mcp client configuration
 
