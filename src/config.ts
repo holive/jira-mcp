@@ -5,10 +5,6 @@ export type Config = {
   confluenceBaseUrl: string;
   email: string;
   apiToken: string;
-  defaults: {
-    projectKey?: string;
-    issueType?: string;
-  };
 };
 
 export function loadConfig(): Config {
@@ -29,10 +25,5 @@ export function loadConfig(): Config {
     confluenceBaseUrl,
     email: env.JIRA_EMAIL,
     apiToken: env.JIRA_API_TOKEN,
-    defaults: {
-      projectKey: env.DEFAULT_PROJECT_KEY,
-      issueType: env.DEFAULT_ISSUE_TYPE,
-    },
   };
 }
-

@@ -154,20 +154,6 @@ export class JiraClient {
     return data;
   }
 
-  async createIssue(payload: any): Promise<{ id: string; key: string; self?: string }> {
-    const data = await this.request("POST", "/rest/api/3/issue", payload);
-    return data;
-  }
-
-  async updateIssue(key: string, payload: any): Promise<void> {
-    await this.request("PUT", `/rest/api/3/issue/${encodeURIComponent(key)}`, payload);
-  }
-
-  async addComment(key: string, payload: any): Promise<any> {
-    const data = await this.request("POST", `/rest/api/3/issue/${encodeURIComponent(key)}/comment`, payload);
-    return data;
-  }
-
   async listProjects(query?: string, startAt?: number, maxResults?: number): Promise<any> {
     const data = await this.request("GET", "/rest/api/3/project/search", undefined, {
       query,
@@ -175,15 +161,6 @@ export class JiraClient {
       maxResults: maxResults ?? 25,
     });
     return data;
-  }
-
-  async listTransitions(key: string): Promise<any> {
-    const data = await this.request("GET", `/rest/api/3/issue/${encodeURIComponent(key)}/transitions`);
-    return data;
-  }
-
-  async transitionIssue(key: string, payload: any): Promise<void> {
-    await this.request("POST", `/rest/api/3/issue/${encodeURIComponent(key)}/transitions`, payload);
   }
 
   async getIssueChangelog(key: string, startAt?: number, maxResults?: number): Promise<{
@@ -198,25 +175,6 @@ export class JiraClient {
       undefined,
       { startAt: startAt ?? 0, maxResults: maxResults ?? 100 }
     );
-    return data;
-  }
-
-  async listComponents(projectKeyOrId: string, startAt?: number, maxResults?: number): Promise<{
-    startAt: number;
-    maxResults: number;
-    total: number;
-    values: Array<{ id: string; name: string; description?: string; lead?: any }>;
-  }> {
-    const data = await this.request(
-      "GET",
-      `/rest/api/3/project/${encodeURIComponent(projectKeyOrId)}/component`,
-      undefined,
-      { startAt: startAt ?? 0, maxResults: maxResults ?? 50 }
-    );
-    // Some sites return an array without paging; normalize
-    if (Array.isArray(data)) {
-      return { startAt: 0, maxResults: data.length, total: data.length, values: data } as any;
-    }
     return data;
   }
 

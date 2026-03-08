@@ -92,17 +92,6 @@ export const JiraTransition = z.object({
   }),
 });
 
-/* Shared preview shape for mutating operations */
-export const MutationPreview = z.object({
-  preview: z.literal(true),
-  request: z.object({
-    method: z.enum(["POST", "PUT"]),
-    path: NonEmptyString, // REST path e.g. /rest/api/3/issue
-    body: z.unknown(),
-  }),
-  hint: z.string().optional(),
-});
-
 /* Tool inputs/outputs */
 
 /* search_issues */
@@ -194,53 +183,6 @@ export const GetChangelogOutput = z.object({
   nextStartAt: z.number().int().min(0).optional(),
 });
 
-/* create_issue */
-export const CreateIssueInput = z.object({
-  summary: NonEmptyString,
-  description: z.string().optional(), // plain text; server converts to minimal ADF
-  projectKey: z.string().optional(), // falls back to DEFAULT_PROJECT_KEY
-  issueType: z.string().optional(), // falls back to DEFAULT_ISSUE_TYPE
-  fields: z.record(z.unknown()).optional(), // custom fields (e.g., {"customfield_12345": "foo"})
-  confirm: z.boolean().default(false),
-});
-export const CreateIssueOutput = z.union([
-  MutationPreview,
-  z.object({
-    preview: z.literal(false).optional(),
-    issue: JiraIssue,
-  }),
-]);
-
-/* update_issue */
-export const UpdateIssueInput = z.object({
-  issueKey: NonEmptyString,
-  summary: z.string().optional(),
-  description: z.string().optional(), // plain text
-  fields: z.record(z.unknown()).optional(),
-  confirm: z.boolean().default(false),
-});
-export const UpdateIssueOutput = z.union([
-  MutationPreview,
-  z.object({
-    preview: z.literal(false).optional(),
-    issue: JiraIssue,
-  }),
-]);
-
-/* add_comment */
-export const AddCommentInput = z.object({
-  issueKey: NonEmptyString,
-  body: NonEmptyString, // plain text
-  confirm: z.boolean().default(false),
-});
-export const AddCommentOutput = z.union([
-  MutationPreview,
-  z.object({
-    preview: z.literal(false).optional(),
-    comment: JiraComment,
-  }),
-]);
-
 /* list_projects */
 export const ListProjectsInput = z.object({
   query: z.string().optional(),
@@ -254,29 +196,6 @@ export const ListProjectsOutput = z.object({
   maxResults: z.number().int().min(1).max(100),
   nextStartAt: z.number().int().min(0).optional(),
 });
-
-/* list_transitions */
-export const ListTransitionsInput = z.object({
-  issueKey: NonEmptyString,
-});
-export const ListTransitionsOutput = z.object({
-  transitions: z.array(JiraTransition),
-});
-
-/* transition_issue */
-export const TransitionIssueInput = z.object({
-  issueKey: NonEmptyString,
-  transition: NonEmptyString, // name or id; server will resolve if name
-  resolution: z.string().optional(), // optional, only if workflow requires it
-  confirm: z.boolean().default(false),
-});
-export const TransitionIssueOutput = z.union([
-  MutationPreview,
-  z.object({
-    preview: z.literal(false).optional(),
-    issue: JiraIssue,
-  }),
-]);
 
 /* Resource schemas (for reference) */
 export const Resource_IssueInput = z.object({
@@ -470,8 +389,5 @@ export const EnvConfig = z.object({
   JIRA_EMAIL: NonEmptyString,
   JIRA_API_TOKEN: NonEmptyString,
   CONFLUENCE_BASE_URL: z.string().optional(), // defaults to JIRA_BASE_URL/wiki if not set
-  DEFAULT_PROJECT_KEY: z.string().optional(),
-  DEFAULT_ISSUE_TYPE: z.string().optional(),
 });
 export type EnvConfigType = z.infer<typeof EnvConfig>;
-
