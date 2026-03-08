@@ -61,11 +61,13 @@ npm install
 npm run build
 ```
 
-### install with claude code or codex
+### recommended: install with your llm
 
-install with your llm: point your agent to `skills/jira-mcp-installer/`.
+point your agent to `skills/jira-mcp-installer/`.
 
-### manual mcp client configuration
+the installer skill collects your jira credentials, builds the project, configures the mcp servers, and runs offline verification.
+
+### manual mcp client configuration (fallback)
 
 if not using gemini cli, add to your mcp client config (claude desktop, cline, etc.):
 
