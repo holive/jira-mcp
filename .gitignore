@@ -2,6 +2,7 @@ node_modules
 dist
 .DS_Store
 .env
+.tasks/
 .jira-mcp.env
 ~/.jira-mcp.env
 code_analysis.json
